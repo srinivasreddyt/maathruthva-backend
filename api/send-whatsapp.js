@@ -23,6 +23,10 @@ module.exports = async (req, res) => {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
+  console.log('Phone Number ID:', phoneNumberId);
+  console.log('Token first 20 chars:', accessToken ? accessToken.substring(0, 20) : 'MISSING');
+  console.log('Sending to:', to);
+
   const body = JSON.stringify({
     messaging_product: 'whatsapp',
     to,
