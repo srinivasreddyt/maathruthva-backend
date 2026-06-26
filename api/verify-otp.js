@@ -6,25 +6,23 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { phone } = req.body || {};
-  if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
-    return res.status(400).json({ error: 'Invalid phone number' });
+  const { sessionId, otp } = req.body || {};
+  if (!sessionId || !otp || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ error: 'Invalid session or OTP' });
   }
 
   const apiKey = process.env.TWOFACTOR_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'Server misconfigured: missing API key' });
 
-  // AUTOGEN2 lets 2Factor generate the OTP and use their own DLT-registered template
-  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/AUTOGEN2`;
+  const url = `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`;
   const response = await fetch(url);
   const data = await response.json();
 
-  console.log('2Factor send response:', JSON.stringify(data));
+  console.log('2Factor verify response:', JSON.stringify(data));
 
   if (data.Status === 'Success') {
-    // Return session ID to frontend — needed for verification
-    return res.status(200).json({ success: true, sessionId: data.Details });
+    return res.status(200).json({ success: true });
   } else {
-    return res.status(502).json({ error: data.Details || 'Failed to send OTP' });
+    return res.status(400).json({ error: 'wrong' });
   }
 };
