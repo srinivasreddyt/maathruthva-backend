@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,20 +13,44 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid phone number' });
   }
 
-  const apiKey = process.env.TWOFACTOR_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'Server misconfigured: missing API key' });
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken  = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  const secret     = process.env.OTP_SECRET || 'mtr-secret';
 
-  // AUTOGEN2 lets 2Factor generate the OTP and use their own DLT-registered template
-  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/AUTOGEN2`;
-  const response = await fetch(url);
+  if (!accountSid || !authToken || !fromNumber) {
+    return res.status(500).json({ error: 'Server misconfigured' });
+  }
+
+  const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiry = Date.now() + 300000;
+  const sig    = crypto.createHmac('sha256', secret).update(`${otp}:${phone}:${expiry}`).digest('hex');
+  const token  = Buffer.from(JSON.stringify({ sig, phone, expiry })).toString('base64');
+
+  const encoded = new URLSearchParams({
+    To:   `+91${phone}`,
+    From: fromNumber,
+    Body: `${otp} is your OTP to login to Maathruthva. Valid for 5 minutes. Do not share with anyone.`,
+  });
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+      },
+      body: encoded,
+    }
+  );
+
   const data = await response.json();
+  console.log('Twilio response:', JSON.stringify(data));
 
-  console.log('2Factor send response:', JSON.stringify(data));
-
-  if (data.Status === 'Success') {
-    // Return session ID to frontend — needed for verification
-    return res.status(200).json({ success: true, sessionId: data.Details });
+  if (data.sid) {
+    return res.status(200).json({ success: true, token });
   } else {
-    return res.status(502).json({ error: data.Details || 'Failed to send OTP' });
+    return res.status(502).json({ error: data.message || 'Failed to send OTP' });
   }
 };
