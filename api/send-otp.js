@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.TWOFACTOR_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'Server misconfigured: missing API key' });
 
-  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/${otp}`;
+  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/${otp}/Maathruthva`;
   const response = await fetch(url);
   const data = await response.json();
 
