@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
       <p style="color:#555;margin:0 0 24px;">Hi ${name || 'there'}, your order has been placed successfully.</p>
 
       <div style="background:#fff8f0;border-radius:8px;padding:16px;margin-bottom:24px;">
-        <p style="margin:0;color:#888;font-size:13px;">Tracking ID</p>
+        <p style="margin:0;color:#888;font-size:13px;">Order ID</p>
         <p style="margin:4px 0 0;color:#b5451b;font-weight:bold;font-size:15px;">${paymentId}</p>
       </div>
 
@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
   const body = JSON.stringify({
     from: 'Maathruthva <onboarding@resend.dev>',
     to: [email],
-    subject: `Order Confirmed - Tracking ID: ${paymentId}`,
+    subject: `Order Confirmed - Order ID: ${paymentId}`,
     html: htmlBody,
   });
 

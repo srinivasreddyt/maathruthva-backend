@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
     to,
     type: 'text',
     text: {
-      body: `Hello! Your order has been placed successfully with Maathruthva.\n\nTracking ID: ${paymentId}\n\nThank you for shopping with us! We will deliver your order soon.`
+      body: `Hello! Your order has been placed successfully with Maathruthva.\n\nOrder ID: ${paymentId}\n\nThank you for shopping with us! We will deliver your order soon.`
     }
   });
 
