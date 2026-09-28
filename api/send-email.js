@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
 <body style="margin:0;padding:0;background:#F7F2E7;font-family:Arial,sans-serif;">
   <div style="max-width:600px;margin:30px auto;background:#FDFBF6;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(47,74,28,0.08);">
     <div style="background:#4A6830;padding:28px 32px;text-align:center;">
-      <img src="https://www.maathruthva.com/logo-email.jpg" alt="Maathruthva" width="64" height="64" style="width:64px;height:64px;border-radius:50%;background:#FBF8F0;padding:3px;margin-bottom:10px;">
+      <img src="https://www.maathruthva.com/logo-email.jpg" alt="Maathruthva" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:50%;background:#FBF8F0;padding:3px;margin:0 auto 10px;border:0;">
       <h1 style="color:#fff;margin:0;font-size:24px;font-family:Georgia,serif;">Maathruthva</h1>
       <p style="color:#DCE7C4;margin:6px 0 0;">Products of Mother Nature</p>
     </div>
