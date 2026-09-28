@@ -1,5 +1,10 @@
 const https = require('https');
 
+const STATUS_CAPTIONS = {
+  dispatched: paymentId => `🚚 Your order has been dispatched!\n\nOrder ID: ${paymentId}\n\nIt's on its way to you. Thank you for shopping with Maathruthva!`,
+  delivered: paymentId => `📦 Your order has been delivered!\n\nOrder ID: ${paymentId}\n\nWe hope you and your little one love it. Thank you for shopping with Maathruthva!`,
+};
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -8,13 +13,17 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { phone, paymentId } = req.body;
+  const { phone, orderId, status } = req.body;
 
-  if (!phone || !paymentId) {
-    return res.status(400).json({ error: 'Missing phone or paymentId' });
+  if (!phone || !orderId || !status) {
+    return res.status(400).json({ error: 'Missing phone, orderId or status' });
   }
 
-  // Normalize phone: remove spaces, dashes; add country code if missing
+  const captionFn = STATUS_CAPTIONS[status];
+  if (!captionFn) {
+    return res.status(400).json({ error: 'Unsupported status: ' + status });
+  }
+
   let to = phone.replace(/[\s\-\(\)]/g, '');
   if (to.startsWith('0')) to = '91' + to.slice(1);
   if (!to.startsWith('+')) to = (to.startsWith('91') ? '' : '91') + to;
@@ -23,17 +32,13 @@ module.exports = async (req, res) => {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
-  console.log('Phone Number ID:', phoneNumberId);
-  console.log('Token first 20 chars:', accessToken ? accessToken.substring(0, 20) : 'MISSING');
-  console.log('Sending to:', to);
-
   const body = JSON.stringify({
     messaging_product: 'whatsapp',
     to,
     type: 'image',
     image: {
       link: 'https://www.maathruthva.com/logo-email.jpg',
-      caption: `Hello! Your order has been placed successfully with Maathruthva.\n\nOrder ID: ${paymentId}\n\nThank you for shopping with us! We will deliver your order soon.`
+      caption: captionFn(orderId)
     }
   });
 
@@ -61,7 +66,7 @@ module.exports = async (req, res) => {
 
   const parsed = JSON.parse(data.body);
   if (data.status !== 200) {
-    console.error('WhatsApp API error:', parsed);
+    console.error('WhatsApp status API error:', parsed);
     return res.status(data.status).json({ error: parsed.error?.message || 'WhatsApp API error' });
   }
 
