@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
 </html>`;
 
   const body = JSON.stringify({
-    from: 'Maathruthva <onboarding@resend.dev>',
+    from: 'Maathruthva <orders@maathruthva.com>',
     to: [email],
     subject: content.subject(orderId),
     html: htmlBody,
