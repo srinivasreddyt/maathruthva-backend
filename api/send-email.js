@@ -30,44 +30,45 @@ module.exports = async (req, res) => {
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#fff8f0;font-family:Arial,sans-serif;">
-  <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-    <div style="background:#b5451b;padding:28px 32px;text-align:center;">
-      <h1 style="color:#fff;margin:0;font-size:24px;">Maathruthva</h1>
-      <p style="color:#ffdacc;margin:6px 0 0;">Pure. Natural. Nourishing.</p>
+<body style="margin:0;padding:0;background:#F7F2E7;font-family:Arial,sans-serif;">
+  <div style="max-width:600px;margin:30px auto;background:#FDFBF6;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(47,74,28,0.08);">
+    <div style="background:#4A6830;padding:28px 32px;text-align:center;">
+      <img src="https://www.maathruthva.com/logo-email.jpg" alt="Maathruthva" width="64" height="64" style="width:64px;height:64px;border-radius:50%;background:#FBF8F0;padding:3px;margin-bottom:10px;">
+      <h1 style="color:#fff;margin:0;font-size:24px;font-family:Georgia,serif;">Maathruthva</h1>
+      <p style="color:#DCE7C4;margin:6px 0 0;">Products of Mother Nature</p>
     </div>
     <div style="padding:32px;">
-      <h2 style="color:#b5451b;margin:0 0 8px;">Order Confirmed!</h2>
-      <p style="color:#555;margin:0 0 24px;">Hi ${name || 'there'}, your order has been placed successfully.</p>
+      <h2 style="color:#2F4A1C;margin:0 0 8px;font-family:Georgia,serif;">Order Confirmed!</h2>
+      <p style="color:#5E5238;margin:0 0 24px;">Hi ${name || 'there'}, your order has been placed successfully.</p>
 
-      <div style="background:#fff8f0;border-radius:8px;padding:16px;margin-bottom:24px;">
-        <p style="margin:0;color:#888;font-size:13px;">Order ID</p>
-        <p style="margin:4px 0 0;color:#b5451b;font-weight:bold;font-size:15px;">${paymentId}</p>
+      <div style="background:#EFE7D4;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0;color:#8A7A50;font-size:13px;">Order ID</p>
+        <p style="margin:4px 0 0;color:#4A6830;font-weight:bold;font-size:15px;">${paymentId}</p>
       </div>
 
-      <h3 style="color:#333;margin:0 0 12px;font-size:15px;">Items Ordered</h3>
+      <h3 style="color:#33291A;margin:0 0 12px;font-size:15px;">Items Ordered</h3>
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
         <thead>
-          <tr style="background:#fff8f0;">
-            <th style="padding:8px;text-align:left;color:#888;font-size:13px;">Item</th>
-            <th style="padding:8px;text-align:center;color:#888;font-size:13px;">Qty</th>
-            <th style="padding:8px;text-align:right;color:#888;font-size:13px;">Price</th>
+          <tr style="background:#EFE7D4;">
+            <th style="padding:8px;text-align:left;color:#8A7A50;font-size:13px;">Item</th>
+            <th style="padding:8px;text-align:center;color:#8A7A50;font-size:13px;">Qty</th>
+            <th style="padding:8px;text-align:right;color:#8A7A50;font-size:13px;">Price</th>
           </tr>
         </thead>
         <tbody>${itemsHtml}</tbody>
       </table>
 
       <div style="text-align:right;margin-bottom:24px;">
-        <span style="font-size:16px;font-weight:bold;color:#b5451b;">Total: ₹${total}</span>
+        <span style="font-size:16px;font-weight:bold;color:#B8901A;">Total: ₹${total}</span>
       </div>
 
-      <h3 style="color:#333;margin:0 0 8px;font-size:15px;">Delivery Address</h3>
-      <p style="color:#555;margin:0 0 24px;">${addressHtml}</p>
+      <h3 style="color:#33291A;margin:0 0 8px;font-size:15px;">Delivery Address</h3>
+      <p style="color:#5E5238;margin:0 0 24px;">${addressHtml}</p>
 
-      <p style="color:#888;font-size:13px;margin:0;">We will notify you once your order is shipped. Thank you for shopping with Maathruthva!</p>
+      <p style="color:#8A7A50;font-size:13px;margin:0;">We will notify you once your order is shipped. Thank you for shopping with Maathruthva!</p>
     </div>
-    <div style="background:#fff8f0;padding:16px 32px;text-align:center;">
-      <p style="color:#aaa;font-size:12px;margin:0;">© 2025 Maathruthva. All rights reserved.</p>
+    <div style="background:#EFE7D4;padding:16px 32px;text-align:center;">
+      <p style="color:#8A7A50;font-size:12px;margin:0;">© 2026 Maathruthva. All rights reserved.</p>
     </div>
   </div>
 </body>
