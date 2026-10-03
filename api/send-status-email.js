@@ -1,102 +1,39 @@
-const https = require('https');
+const { handle, getBody, isEmail, cleanText, requireAdmin, sendError, HttpError } = require('../lib/security');
+const { sendEmail, statusHtml } = require('../lib/notify');
 
 const STATUS_CONTENT = {
   dispatched: {
-    subject: prefix => `Your Order Has Been Dispatched - ${prefix}`,
+    subject: id => `Your Order Has Been Dispatched - ${id}`,
     heading: 'Order Dispatched!',
     message: 'Great news — your order is on its way to you.',
     emoji: '🚚',
   },
   delivered: {
-    subject: prefix => `Your Order Has Been Delivered - ${prefix}`,
+    subject: id => `Your Order Has Been Delivered - ${id}`,
     heading: 'Order Delivered!',
     message: 'Your order has been delivered. We hope you and your little one love it!',
     emoji: '📦',
   },
 };
 
+// Admin-triggered. Requires an admin Firebase session once ADMIN_EMAILS is configured.
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (!handle(req, res)) return;
+  try {
+    await requireAdmin(req);
+    const { email, name, orderId, status } = getBody(req);
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!isEmail(email) || !/^[A-Za-z0-9_-]{3,64}$/.test(orderId || '')) throw new HttpError(400, 'Invalid email or order id');
+    const content = Object.prototype.hasOwnProperty.call(STATUS_CONTENT, status) ? STATUS_CONTENT[status] : null;
+    if (!content) throw new HttpError(400, 'Unsupported status');
 
-  const { email, name, orderId, status } = req.body;
-
-  if (!email || !orderId || !status) {
-    return res.status(400).json({ error: 'Missing email, orderId or status' });
-  }
-
-  const content = STATUS_CONTENT[status];
-  if (!content) {
-    return res.status(400).json({ error: 'Unsupported status: ' + status });
-  }
-
-  const htmlBody = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#F7F2E7;font-family:Arial,sans-serif;">
-  <div style="max-width:600px;margin:30px auto;background:#FDFBF6;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(47,74,28,0.08);">
-    <div style="background:#4A6830;padding:28px 32px;text-align:center;">
-      <img src="https://www.maathruthva.com/logo-email.jpg" alt="Maathruthva" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:50%;background:#FBF8F0;padding:3px;margin:0 auto 10px;border:0;">
-      <h1 style="color:#fff;margin:0;font-size:24px;font-family:Georgia,serif;">Maathruthva</h1>
-      <p style="color:#DCE7C4;margin:6px 0 0;">Products of Mother Nature</p>
-    </div>
-    <div style="padding:32px;">
-      <h2 style="color:#2F4A1C;margin:0 0 8px;font-family:Georgia,serif;">${content.emoji} ${content.heading}</h2>
-      <p style="color:#5E5238;margin:0 0 24px;">Hi ${name || 'there'}, ${content.message}</p>
-
-      <div style="background:#EFE7D4;border-radius:8px;padding:16px;margin-bottom:24px;">
-        <p style="margin:0;color:#8A7A50;font-size:13px;">Order ID</p>
-        <p style="margin:4px 0 0;color:#4A6830;font-weight:bold;font-size:15px;">${orderId}</p>
-      </div>
-
-      <p style="color:#8A7A50;font-size:13px;margin:0;">Thank you for shopping with Maathruthva!</p>
-    </div>
-    <div style="background:#EFE7D4;padding:16px 32px;text-align:center;">
-      <p style="color:#8A7A50;font-size:12px;margin:0;">© 2026 Maathruthva. All rights reserved.</p>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  const body = JSON.stringify({
-    from: 'Maathruthva <orders@maathruthva.com>',
-    to: [email],
-    subject: content.subject(orderId),
-    html: htmlBody,
-  });
-
-  const options = {
-    hostname: 'api.resend.com',
-    path: '/emails',
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
-    },
-  };
-
-  const data = await new Promise((resolve, reject) => {
-    const request = https.request(options, (response) => {
-      let raw = '';
-      response.on('data', chunk => raw += chunk);
-      response.on('end', () => resolve({ status: response.statusCode, body: raw }));
+    const id = await sendEmail({
+      to: email.trim(),
+      subject: content.subject(orderId),
+      html: statusHtml({ ...content, name: cleanText(name, 80), orderId }),
     });
-    request.on('error', reject);
-    request.write(body);
-    request.end();
-  });
-
-  const parsed = JSON.parse(data.body);
-  if (data.status !== 200 && data.status !== 201) {
-    console.error('Resend status email error:', parsed);
-    return res.status(data.status).json({ error: parsed.message || 'Email send failed' });
+    res.status(200).json({ success: true, id });
+  } catch (e) {
+    sendError(res, e);
   }
-
-  res.status(200).json({ success: true, id: parsed.id });
 };

@@ -1,28 +1,31 @@
 const crypto = require('crypto');
+const { handle, getBody, safeEqual, sendError, HttpError } = require('../lib/security');
 
 module.exports = (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (!handle(req, res)) return;
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = getBody(req);
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (
+      !/^order_[A-Za-z0-9]{6,40}$/.test(razorpay_order_id || '') ||
+      !/^pay_[A-Za-z0-9]{6,40}$/.test(razorpay_payment_id || '') ||
+      !/^[a-f0-9]{64}$/.test(razorpay_signature || '')
+    ) {
+      throw new HttpError(400, 'Missing or malformed payment fields');
+    }
+    if (!process.env.RAZORPAY_KEY_SECRET) throw new HttpError(500, 'Server misconfigured');
 
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const expected = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
 
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ verified: false, error: 'Missing payment fields' });
-  }
-
-  const body = razorpay_order_id + '|' + razorpay_payment_id;
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    .update(body)
-    .digest('hex');
-
-  if (expectedSignature === razorpay_signature) {
-    res.status(200).json({ verified: true, payment_id: razorpay_payment_id });
-  } else {
-    res.status(400).json({ verified: false, error: 'Signature mismatch' });
+    if (safeEqual(expected, razorpay_signature)) {
+      res.status(200).json({ verified: true, payment_id: razorpay_payment_id });
+    } else {
+      res.status(400).json({ verified: false, error: 'Signature mismatch' });
+    }
+  } catch (e) {
+    sendError(res, e);
   }
 };

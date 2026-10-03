@@ -1,55 +1,47 @@
-const https = require('https');
+const { handle, getBody, cleanText, isEmail, normalizeIndianPhone, sendError } = require('../lib/security');
+const { computeOrder } = require('../lib/pricing');
+const { rz } = require('../lib/razorpay');
 
+// The amount charged is computed here from Firestore prices; any amount sent by the browser is ignored.
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (!handle(req, res)) return;
+  try {
+    const body = getBody(req);
+    const order = await computeOrder({ items: body.items, promoCode: body.promoCode });
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    const email = isEmail(body.email) ? body.email.trim().toLowerCase() : '';
+    const phone = normalizeIndianPhone(body.phone) || '';
+    const notes = {
+      email,
+      phone,
+      name: cleanText(body.name, 80),
+      address: cleanText(body.address, 250),
+      items: order.items.map(i => `${i.productId}x${i.qty}@${i.price}`).join(',').slice(0, 250),
+      promo: order.promoCode,
+    };
+    Object.keys(notes).forEach(k => { if (!notes[k]) delete notes[k]; });
 
-  const { amount, currency = 'INR', receipt } = req.body;
-
-  if (!amount || isNaN(amount) || amount <= 0) {
-    return res.status(400).json({ error: 'Invalid amount' });
-  }
-
-  const auth = Buffer.from(
-    `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
-  ).toString('base64');
-
-  const body = JSON.stringify({
-    amount: Math.round(amount),
-    currency,
-    receipt: receipt || `mtr_${Date.now()}`,
-  });
-
-  const options = {
-    hostname: 'api.razorpay.com',
-    path: '/v1/orders',
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
-    },
-  };
-
-  const data = await new Promise((resolve, reject) => {
-    const request = https.request(options, (response) => {
-      let raw = '';
-      response.on('data', chunk => raw += chunk);
-      response.on('end', () => resolve({ status: response.statusCode, body: raw }));
+    const rzOrder = await rz('POST', '/v1/orders', {
+      amount: order.totalPaise,
+      currency: 'INR',
+      receipt: `mtr_${Date.now()}`,
+      notes,
     });
-    request.on('error', reject);
-    request.write(body);
-    request.end();
-  });
 
-  const parsed = JSON.parse(data.body);
-  if (data.status !== 200) {
-    return res.status(data.status).json({ error: parsed.error?.description || 'Razorpay error' });
+    res.status(200).json({
+      id: rzOrder.id,
+      amount: rzOrder.amount,
+      currency: rzOrder.currency,
+      breakdown: {
+        subtotal: order.subtotal,
+        discount: order.discount,
+        shipping: order.shipping,
+        total: order.totalPaise / 100,
+        promoCode: order.promoCode,
+      },
+      items: order.items,
+    });
+  } catch (e) {
+    sendError(res, e);
   }
-
-  res.status(200).json({ id: parsed.id, amount: parsed.amount, currency: parsed.currency });
 };
