@@ -18,7 +18,7 @@ const STATUS_CONTENT = {
 
 // Admin-triggered. Requires an admin Firebase session once ADMIN_EMAILS is configured.
 module.exports = async (req, res) => {
-  if (!handle(req, res)) return;
+  if (!handle(req, res, { name: 'send-status-email', max: 60 })) return;
   try {
     await requireAdmin(req);
     const { email, name, orderId, status } = getBody(req);

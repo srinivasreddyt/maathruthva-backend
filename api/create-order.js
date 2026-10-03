@@ -4,7 +4,7 @@ const { rz } = require('../lib/razorpay');
 
 // The amount charged is computed here from Firestore prices; any amount sent by the browser is ignored.
 module.exports = async (req, res) => {
-  if (!handle(req, res)) return;
+  if (!handle(req, res, { name: 'create-order', max: 20 })) return;
   try {
     const body = getBody(req);
     const order = await computeOrder({ items: body.items, promoCode: body.promoCode });

@@ -4,7 +4,7 @@ const { sendWhatsAppImage } = require('../lib/notify');
 
 // Order confirmation. The recipient number comes from the paid Razorpay order, never from the request.
 module.exports = async (req, res) => {
-  if (!handle(req, res)) return;
+  if (!handle(req, res, { name: 'send-whatsapp', max: 10 })) return;
   try {
     const { razorpay_order_id } = getBody(req);
     const order = await getPaidOrder(razorpay_order_id);

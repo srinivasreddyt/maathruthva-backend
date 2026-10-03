@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { handle, getBody, safeEqual, sendError, HttpError } = require('../lib/security');
 
 module.exports = (req, res) => {
-  if (!handle(req, res)) return;
+  if (!handle(req, res, { name: 'verify-payment', max: 30 })) return;
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = getBody(req);
 

@@ -6,7 +6,7 @@ const { sendEmail, orderConfirmationHtml } = require('../lib/notify');
 // Order confirmation. Recipient and contents come from the paid Razorpay order (set server-side at create-order),
 // never from the request, so this cannot be used to email arbitrary people.
 module.exports = async (req, res) => {
-  if (!handle(req, res)) return;
+  if (!handle(req, res, { name: 'send-email', max: 10 })) return;
   try {
     const { razorpay_order_id } = getBody(req);
     const order = await getPaidOrder(razorpay_order_id);
