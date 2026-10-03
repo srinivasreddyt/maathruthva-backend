@@ -1,7 +1,8 @@
 const crypto = require('crypto');
 const { handle, getBody, safeEqual, sendError, HttpError } = require('../lib/security');
+const { finalizeOrder } = require('../lib/orders');
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   if (!handle(req, res, { name: 'verify-payment', max: 30 })) return;
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = getBody(req);
@@ -20,11 +21,19 @@ module.exports = (req, res) => {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (safeEqual(expected, razorpay_signature)) {
-      res.status(200).json({ verified: true, payment_id: razorpay_payment_id });
-    } else {
-      res.status(400).json({ verified: false, error: 'Signature mismatch' });
+    if (!safeEqual(expected, razorpay_signature)) {
+      return res.status(400).json({ verified: false, error: 'Signature mismatch' });
     }
+
+    // Save the order from the server so it cannot be edited in the browser. If this fails the Razorpay webhook retries it,
+    // and `orderSaved: false` tells the page to fall back to saving it itself.
+    let orderSaved = false;
+    try {
+      orderSaved = (await finalizeOrder(razorpay_order_id)).saved === true;
+    } catch (e) {
+      console.error('Order finalize failed:', e && e.message);
+    }
+    res.status(200).json({ verified: true, payment_id: razorpay_payment_id, orderSaved });
   } catch (e) {
     sendError(res, e);
   }
