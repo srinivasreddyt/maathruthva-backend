@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { handle, getBody, safeEqual, sendError, HttpError } = require('../lib/security');
-const { finalizeOrder } = require('../lib/orders');
+const { finalizeOrder, rejectOrder } = require('../lib/orders');
 
 module.exports = async (req, res) => {
   if (!handle(req, res, { name: 'verify-payment', max: 30 })) return;
@@ -22,6 +22,7 @@ module.exports = async (req, res) => {
       .digest('hex');
 
     if (!safeEqual(expected, razorpay_signature)) {
+      await rejectOrder(razorpay_order_id, 'signature_mismatch', 'The payment signature did not match, so the payment was not accepted');
       return res.status(400).json({ verified: false, error: 'Signature mismatch' });
     }
 

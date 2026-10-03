@@ -1,9 +1,9 @@
 const crypto = require('crypto');
 const { safeEqual, sendError } = require('../lib/security');
 const { ORDER_ID } = require('../lib/razorpay');
-const { finalizeOrder } = require('../lib/orders');
+const { finalizeOrder, rejectOrder } = require('../lib/orders');
 
-const HANDLED_EVENTS = new Set(['payment.captured', 'payment.authorized', 'order.paid']);
+const HANDLED_EVENTS = new Set(['payment.captured', 'payment.authorized', 'order.paid', 'payment.failed']);
 
 // Razorpay signs the exact bytes it sends, so the raw body is needed (body parsing is switched off below).
 function readRawBody(req) {
@@ -41,6 +41,14 @@ async function handler(req, res) {
     const orderId = (payload.payment && payload.payment.entity && payload.payment.entity.order_id)
       || (payload.order && payload.order.entity && payload.order.entity.id);
     if (!ORDER_ID.test(String(orderId || ''))) return res.status(200).json({ ok: true, ignored: 'no_order' });
+
+    if (event.event === 'payment.failed') {
+      // The customer may retry on the same order, in which case a later success upgrades this record to completed.
+      const p = (payload.payment && payload.payment.entity) || {};
+      const why = [p.error_description, p.error_reason].filter(Boolean).join(' - ') || 'The payment failed';
+      const recorded = await rejectOrder(orderId, 'payment_failed', why);
+      return res.status(200).json({ ok: true, recorded });
+    }
 
     // Failures (database, Razorpay not yet consistent, ...) answer non-2xx so Razorpay retries later.
     const result = await finalizeOrder(orderId);
